@@ -20,17 +20,22 @@ O programa:
 
 Durante o desenvolvimento, o programa evoluiu de uma leitura simples com `scanf` para uma versao mais organizada com funcoes separadas:
 
-- `tratarEntrada`
-  - remove o `\n` quando ele cabe no buffer
-  - limpa o restante da linha quando a entrada e maior que o buffer
+- `limparBuffer`
+  - descarta o restante da linha quando a entrada e maior que o buffer
+- `removerNewLine`
+  - remove o `\n` quando ele foi armazenado por `fgets`
+- `lerLinha`
+  - centraliza a leitura com `fgets`
+  - chama `removerNewLine` ou `limparBuffer` conforme o caso
 - `validarBinario`
   - verifica tamanho da entrada
   - verifica se a string contem apenas `0` e `1`
   - retorna um status de validacao com `enum`
 - `binarioParaDecimal`
   - faz a conversao de binario para decimal
-- `validarNovaOperacao`
+- `perguntarRepetir`
   - le a resposta `S` ou `N`
+  - usa `lerLinha` para tratar a entrada
   - converte a letra para maiuscula com `toupper`
   - repete a pergunta se a opcao for invalida
 
@@ -50,27 +55,34 @@ Ao longo da construcao, estes pontos foram ajustados:
 - funcao de conversao retornando tipo inadequado
 - duplicacao de logica de tratamento de entrada
 - refatoracao da validacao para `enum Validacao`
+- substituicao da leitura espalhada por uma funcao unica de leitura segura
+- separacao do tratamento de `\n` em funcoes menores
 
 ## Estrutura final do programa
 
 ### 1. Leitura do binario
 
-O programa le a entrada com `fgets`:
+O programa agora le a entrada com `lerLinha`:
 
 ```c
-fgets(number, sizeof(number), stdin)
+lerLinha(number, sizeof(number));
 ```
 
-Isso evita overflow de leitura.
+Essa funcao encapsula a leitura com `fgets` e o tratamento do buffer. Isso evita overflow e evita repetir a mesma logica em varios pontos.
 
 ### 2. Tratamento da entrada
 
-A funcao `tratarEntrada` faz duas coisas:
+O tratamento da entrada foi dividido em tres funcoes:
 
-- se houver `\n`, remove esse caractere
-- se nao houver `\n`, descarta o restante da linha do teclado
+- `removerNewLine`
+  - procura `\n` na string
+  - troca esse caractere por `\0`
+- `limparBuffer`
+  - descarta o restante da entrada quando o texto digitado ultrapassa o tamanho do buffer
+- `lerLinha`
+  - decide qual das duas funcoes anteriores deve ser usada
 
-Isso evita problemas na proxima leitura.
+Isso evita problemas na proxima leitura e deixa o codigo mais modular.
 
 ### 3. Validacao do binario
 
@@ -88,6 +100,8 @@ A funcao `validarBinario` verifica:
 
 - se a string tem 8 caracteres
 - se cada caractere e `0` ou `1`
+
+No `main`, o resultado dessa validacao e tratado por um `switch`, que decide qual mensagem mostrar para o usuario.
 
 ### 4. Conversao para decimal
 
@@ -114,15 +128,30 @@ Exemplo para `10101100`:
 - `1010110` -> 86
 - `10101100` -> 172
 
+### 5. Repeticao da operacao
+
+A funcao `perguntarRepetir` le a resposta do usuario usando um buffer maior:
+
+```c
+char buf[TAM_BUFFER];
+```
+
+Ela aceita apenas:
+
+- `S`
+- `N`
+
+Se o usuario digitar mais de um caractere ou uma letra diferente, a funcao mostra erro e repete a pergunta.
+
 ## Fluxo do programa
 
 1. Pede o codigo binario.
-2. Trata a entrada lida.
+2. `lerLinha` faz a leitura e trata a entrada.
 3. Valida o tamanho e o conteudo.
 4. Se estiver invalido, mostra a mensagem e pede novamente.
 5. Se estiver valido, converte para decimal.
 6. Mostra o resultado.
-7. Pergunta se o usuario quer fazer nova operacao.
+7. `perguntarRepetir` pergunta se o usuario quer fazer nova operacao.
 8. Se a resposta for `S`, repete.
 9. Se a resposta for `N`, encerra.
 
@@ -166,3 +195,6 @@ A versao atual:
 - valida corretamente a entrada
 - converte corretamente binarios de 8 bits
 - permite repeticao da operacao de forma segura
+- usa `TAM_BINARIO` e `TAM_BUFFER` para evitar numeros magicos
+- concentra a leitura de strings na funcao `lerLinha`
+- separa melhor a responsabilidade entre leitura, validacao, conversao e repeticao

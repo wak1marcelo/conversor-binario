@@ -3,6 +3,7 @@
 #include <ctype.h>
 
 #define TAM_BINARIO 8
+#define TAM_BUFFER 50
 
 enum Validacao {
     VALIDO = 0,
@@ -10,28 +11,24 @@ enum Validacao {
     BINARIO_INVALIDO = 2
 };
 
-char validarNovaOperacao (void);
-void tratarEntrada(char texto[]);
+void limparBuffer(void);
+void removerNewLine(char *texto);
+void lerLinha(char *buf, int tam);
+char perguntarRepetir(void);
 int binarioParaDecimal(const char number[]);
 enum Validacao validarBinario(const char number[]);
 
-int main(){
+int main(void){
 
-    char number[TAM_BINARIO + 1];
-    int result;
+    char number[TAM_BUFFER];
     enum Validacao status;
-    char novaOperacao;
     
 do
 {   
     do
     {
         printf("Digite o codigo binario: ");
-        if (fgets(number, sizeof(number), stdin) == NULL){
-            return 1;
-        }
-        
-        tratarEntrada(number);
+        lerLinha(number, sizeof(number));
 
         status = validarBinario(number);
 
@@ -51,14 +48,10 @@ do
         }
 
     } while (status != VALIDO);
-    
-    result = binarioParaDecimal(number);
-    
-    printf("resultado: %d\n", result);
-    
-    novaOperacao = validarNovaOperacao();
+        
+    printf("resultado: %d\n", binarioParaDecimal(number));
 
-} while (novaOperacao == 'S');
+} while (perguntarRepetir() == 'S');
 
 return 0;
 
@@ -88,33 +81,47 @@ int binarioParaDecimal(const char number[]){
     return result;
 }
 
-char validarNovaOperacao (void){
-    char novaOperacao[2];
-
-       do
-        {
-            printf("Quer fazer uma nova operacao(S/N): ");
-            if (fgets(novaOperacao, sizeof(novaOperacao), stdin) == NULL){
-                return 'N';
-            }
-            
-            tratarEntrada(novaOperacao);
-            novaOperacao[0] = toupper(novaOperacao[0]);
-
-            if (novaOperacao[0] != 'S' && novaOperacao[0] != 'N') {
-                printf("Opcao invalida. Digite S ou N.\n");
-        }
-        } while (novaOperacao[0] != 'S' && novaOperacao[0] != 'N');
-
-        return novaOperacao[0];
+void limparBuffer(void){
+    int c;
+    while ((c = getchar()) != '\n' && c != EOF)
+    ;
 }
 
-void tratarEntrada(char texto[]){
-    if (strchr(texto, '\n') == NULL){
-        int c;
-        while ((c = getchar()) != '\n' && c != EOF){
-        }
-    } else {
-        texto[strcspn(texto, "\n")] = '\0';
+void removerNewLine(char *texto){
+    char *p = strchr(texto, '\n');
+    if(p) *p = '\0';
+}
+
+void lerLinha(char *buf, int tam){
+    if (fgets(buf, tam, stdin) == NULL){
+        buf[0] = '\0';
+        return;
     }
+
+    if (strchr(buf, '\n') == NULL){
+        limparBuffer();
+    } else {
+        removerNewLine(buf);
+    }
+}
+
+char perguntarRepetir(void){
+    char buf[TAM_BUFFER];
+    char opcao;
+
+    for (;;) {
+        printf("Quer fazer uma nova operacao (S/N): ");
+        lerLinha(buf, sizeof(buf));
+        
+        if (strlen(buf) == 1) {
+            opcao = (char) toupper((unsigned char) buf[0]);
+            if (opcao == 'S' || opcao == 'N'){
+                return opcao;
+            }
+        }
+
+        printf("Opcao invalida, Digite S ou N.\n");
+        
+    }
+    
 }
